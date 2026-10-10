@@ -7,6 +7,13 @@ let height = window.innerHeight;
 let stars = [];
 let shockwave = null;
 
+const starColors = ['#ffffff', '#e0f2fe', '#bae6fd', '#fef08a', '#f472b6', '#a78bfa'];
+
+function getRandomStarColor() {
+    let randomIndex = Math.floor(Math.random() * starColors.length);
+    return starColors[randomIndex];
+}
+
 function resize() {
     width = canvas.width = window.innerWidth;
     height = canvas.height = window.innerHeight;
@@ -21,7 +28,7 @@ function Star() {
     this.vx = 0;
     this.vy = 0;
     this.size = Math.random() * 1.5 + 0.5;
-    this.color = '#aaaaaa';
+    this.color = getRandomStarColor();
     this.springK = 0.03;
     this.friction = 0.88;
 }
@@ -61,28 +68,11 @@ function Shockwave(x, y) {
     this.radius = 0;
     this.maxRadius = Math.max(width, height) * 0.7;
     this.speed = 8;
-    this.force = 50;
     this.thickness = 40;
 }
 
 Shockwave.prototype.update = function() {
     this.radius += this.speed;
-    let waveStart = this.radius - this.thickness;
-    let waveEnd = this.radius + this.thickness;
-
-    for (let i = 0; i < stars.length; i++) {
-        let star = stars[i];
-        let dx = star.x - this.x;
-        let dy = star.y - this.y;
-        let dist = Math.sqrt(dx * dx + dy * dy);
-
-        if (dist >= waveStart && dist <= waveEnd) {
-            let angle = Math.atan2(dy, dx);
-            let impact = (this.force * 0.1) * (1 - (this.radius / this.maxRadius));
-            star.vx += Math.cos(angle) * impact;
-            star.vy += Math.sin(angle) * impact;
-        }
-    }
 };
 
 Shockwave.prototype.draw = function() {
@@ -91,7 +81,7 @@ Shockwave.prototype.draw = function() {
 
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(180, 180, 180, ${alpha * 0.4})`;
+    ctx.strokeStyle = `rgba(0, 223, 216, ${alpha * 0.6})`;
     ctx.lineWidth = 2;
     ctx.stroke();
 };
