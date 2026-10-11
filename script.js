@@ -6,12 +6,14 @@ let height = window.innerHeight;
 
 let stars = [];
 let shockwave = null;
+let colorMode = 'white';
 
-const starColors = ['#ffffff', '#e0f2fe', '#bae6fd', '#fef08a', '#f472b6', '#a78bfa'];
+const starColors = ['#e0f2fe', '#bae6fd', '#fef08a', '#f472b6', '#a78bfa'];
 
-function getRandomStarColor() {
-    let randomIndex = Math.floor(Math.random() * starColors.length);
-    return starColors[randomIndex];
+function getStarColor() {
+    if (colorMode === 'white') return '#ffffff';
+    if (colorMode === 'black') return '#222222';
+    return starColors[Math.floor(Math.random() * starColors.length)];
 }
 
 function resize() {
@@ -27,8 +29,8 @@ function Star() {
     this.y = this.baseY;
     this.vx = 0;
     this.vy = 0;
-    this.size = Math.random() * 1.5 + 0.5;
-    this.color = getRandomStarColor();
+    this.size = Math.random() * 1.8 + 0.6;
+    this.color = getStarColor();
     this.springK = 0.03;
     this.friction = 0.88;
 }
@@ -66,13 +68,30 @@ function Shockwave(x, y) {
     this.x = x;
     this.y = y;
     this.radius = 0;
-    this.maxRadius = Math.max(width, height) * 0.7;
-    this.speed = 8;
-    this.thickness = 40;
+    this.maxRadius = Math.max(width, height) * 1.2; // Größerer Ring
+    this.speed = 9;
+    this.force = 70;
+    this.thickness = 60;
 }
 
 Shockwave.prototype.update = function() {
     this.radius += this.speed;
+    let waveStart = this.radius - this.thickness;
+    let waveEnd = this.radius + this.thickness;
+
+    for (let i = 0; i < stars.length; i++) {
+        let star = stars[i];
+        let dx = star.x - this.x;
+        let dy = star.y - this.y;
+        let dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist >= waveStart && dist <= waveEnd) {
+            let angle = Math.atan2(dy, dx);
+            let impact = (this.force * 0.1) * (1 - (this.radius / this.maxRadius));
+            star.vx += Math.cos(angle) * impact;
+            star.vy += Math.sin(angle) * impact;
+        }
+    }
 };
 
 Shockwave.prototype.draw = function() {
@@ -82,7 +101,7 @@ Shockwave.prototype.draw = function() {
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
     ctx.strokeStyle = `rgba(0, 223, 216, ${alpha * 0.6})`;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 3;
     ctx.stroke();
 };
 
@@ -109,7 +128,17 @@ function animate() {
 window.addEventListener('resize', resize);
 
 window.addEventListener('click', function(e) {
+    if (e.target.closest('.controls')) return;
     shockwave = new Shockwave(e.clientX, e.clientY);
+});
+
+document.querySelectorAll('input[name="colorMode"]').forEach(input => {
+    input.addEventListener('change', (e) => {
+        colorMode = e.target.value;
+        for (let i = 0; i < stars.length; i++) {
+            stars[i].color = getStarColor();
+        }
+    });
 });
 
 resize();
