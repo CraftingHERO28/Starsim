@@ -1,14 +1,58 @@
 const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
+const ctx = canvas ? canvas.getContext('2d') : null;
 
 let width = window.innerWidth;
 let height = window.innerHeight;
 
 let stars = [];
-let shockwave = null;
+let shockwaves = [];
 let colorMode = 'white';
 
+const powerInput = document.querySelector('input[name="power"]');
+const speedInput = document.querySelector('input[name="speed"]');
 const starColors = ['#e0f2fe', '#bae6fd', '#fef08a', '#f472b6', '#a78bfa'];
+const gpuCheckbox = document.querySelector('input[name="show GPU-Info"]');
+const gpuDisplay = document.querySelector('.gpu-display');
+
+if (gpuCheckbox && gpuDisplay) {
+    gpuDisplay.style.display = gpuCheckbox.checked ? 'block' : 'none';
+
+    gpuCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            gpuDisplay.style.display = 'block';
+        } else {
+            gpuDisplay.style.display = 'none';
+        }
+    });
+}
+
+const gpuTextElement = document.getElementById('gpu-text');
+if (gpuTextElement) {
+    try {
+        const tempCanvas = document.createElement('canvas');
+        const gl = tempCanvas.getContext('webgl') || tempCanvas.getContext('experimental-webgl');
+        const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+        
+        if (debugInfo) {
+            let renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+            renderer = renderer.replace(/ANGLE \([^,]+,\s*([^,]+),\s*[^)]+\)/, '$1');
+            
+            gpuTextElement.textContent = renderer;
+        } else {
+            gpuTextElement.textContent = 'GPU-Info n/a';
+        }
+    } catch (e) {
+        gpuTextElement.textContent = 'GPU-Info n/a';
+    }
+}
+
+function getPower() {
+    return Number(powerInput ? powerInput.value : 7) || 7;
+}
+
+function getSpeed() {
+    return Number(speedInput ? speedInput.value : 7) || 7;
+}
 
 function getStarColor() {
     if (colorMode === 'white') return '#ffffff';
@@ -17,6 +61,8 @@ function getStarColor() {
 }
 
 function resize() {
+    if (!canvas || !ctx) return;
+
     width = canvas.width = window.innerWidth;
     height = canvas.height = window.innerHeight;
     initStars();
@@ -29,7 +75,7 @@ function Star() {
     this.y = this.baseY;
     this.vx = 0;
     this.vy = 0;
-    this.size = Math.random() * 1.8 + 0.6;
+    this.size = Math.random() * 2.8 + 0.6;
     this.color = getStarColor();
     this.springK = 0.03;
     this.friction = 0.88;
@@ -50,6 +96,8 @@ Star.prototype.update = function() {
 };
 
 Star.prototype.draw = function() {
+    if (!ctx) return;
+
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
     ctx.fillStyle = this.color;
@@ -68,10 +116,10 @@ function Shockwave(x, y) {
     this.x = x;
     this.y = y;
     this.radius = 0;
-    this.maxRadius = Math.max(width, height) * 1.2; // Größerer Ring
-    this.speed = 9;
-    this.force = 70;
-    this.thickness = 60;
+    this.maxRadius = Math.max(width, height) * 1.2;
+    this.speed = getSpeed() * 2.2;
+    this.force = getPower() * 12;
+    this.thickness = 18;
 }
 
 Shockwave.prototype.update = function() {
@@ -95,25 +143,35 @@ Shockwave.prototype.update = function() {
 };
 
 Shockwave.prototype.draw = function() {
+    if (!ctx) return;
+
     let alpha = 1 - (this.radius / this.maxRadius);
     if (alpha <= 0) return;
 
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(0, 223, 216, ${alpha * 0.6})`;
+    ctx.strokeStyle = `rgba(0, 223, 216, ${Math.max(0, alpha * 0.6)})`;
     ctx.lineWidth = 3;
     ctx.stroke();
 };
 
+function spawnShockwave(x, y) {
+    shockwaves.push(new Shockwave(x, y));
+}
+
 function animate() {
+    if (!ctx) return;
+
     ctx.fillStyle = '#0c0707';
     ctx.fillRect(0, 0, width, height);
 
-    if (shockwave) {
-        shockwave.update();
-        shockwave.draw();
-        if (shockwave.radius >= shockwave.maxRadius) {
-            shockwave = null;
+    for (let i = shockwaves.length - 1; i >= 0; i--) {
+        let wave = shockwaves[i];
+        wave.update();
+        wave.draw();
+
+        if (wave.radius >= wave.maxRadius) {
+            shockwaves.splice(i, 1);
         }
     }
 
@@ -129,8 +187,24 @@ window.addEventListener('resize', resize);
 
 window.addEventListener('click', function(e) {
     if (e.target.closest('.controls')) return;
-    shockwave = new Shockwave(e.clientX, e.clientY);
+    spawnShockwave(e.clientX, e.clientY);
 });
+
+if (powerInput) {
+    powerInput.addEventListener('input', function() {
+        for (let i = 0; i < shockwaves.length; i++) {
+            shockwaves[i].force = getPower() * 12;
+        }
+    });
+}
+
+if (speedInput) {
+    speedInput.addEventListener('input', function() {
+        for (let i = 0; i < shockwaves.length; i++) {
+            shockwaves[i].speed = getSpeed() * 2.2;
+        }
+    });
+}
 
 document.querySelectorAll('input[name="colorMode"]').forEach(input => {
     input.addEventListener('change', (e) => {
