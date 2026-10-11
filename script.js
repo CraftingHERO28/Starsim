@@ -7,9 +7,11 @@ let height = window.innerHeight;
 let stars = [];
 let shockwaves = [];
 let colorMode = 'white';
+let zoomLevel = 1;
 
 const powerInput = document.querySelector('input[name="power"]');
 const speedInput = document.querySelector('input[name="speed"]');
+const zoomSlider = document.getElementById('zoomSlider');
 const starColors = ['#e0f2fe', '#bae6fd', '#fef08a', '#f472b6', '#a78bfa'];
 const gpuCheckbox = document.querySelector('input[name="show GPU-Info"]');
 const gpuDisplay = document.querySelector('.gpu-display');
@@ -36,7 +38,6 @@ if (gpuTextElement) {
         if (debugInfo) {
             let renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
             renderer = renderer.replace(/ANGLE \([^,]+,\s*([^,]+),\s*[^)]+\)/, '$1');
-            
             gpuTextElement.textContent = renderer;
         } else {
             gpuTextElement.textContent = 'GPU-Info n/a';
@@ -62,7 +63,6 @@ function getStarColor() {
 
 function resize() {
     if (!canvas || !ctx) return;
-
     width = canvas.width = window.innerWidth;
     height = canvas.height = window.innerHeight;
     initStars();
@@ -75,13 +75,14 @@ function Star() {
     this.y = this.baseY;
     this.vx = 0;
     this.vy = 0;
-    this.size = Math.random() * 2.8 + 0.6;
+    this.size = Math.random() * 1.8 + 0.6;
     this.color = getStarColor();
-    this.springK = 0.03;
-    this.friction = 0.88;
+    this.springK = 0.03;   // Federkraft für den Bounce
+    this.friction = 0.88;  // Reibung, damit es sich beruhigt
 }
 
 Star.prototype.update = function() {
+    // Originale Federphysik für den weichen Bounce
     let dx = this.baseX - this.x;
     let dy = this.baseY - this.y;
 
@@ -97,7 +98,6 @@ Star.prototype.update = function() {
 
 Star.prototype.draw = function() {
     if (!ctx) return;
-
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
     ctx.fillStyle = this.color;
@@ -106,7 +106,7 @@ Star.prototype.draw = function() {
 
 function initStars() {
     stars = [];
-    const count = Math.floor((width * height) / 3000);
+    const count = Math.floor((width * height) / 3000) * zoomLevel;
     for (let i = 0; i < count; i++) {
         stars.push(new Star());
     }
@@ -119,7 +119,7 @@ function Shockwave(x, y) {
     this.maxRadius = Math.max(width, height) * 1.2;
     this.speed = getSpeed() * 2.2;
     this.force = getPower() * 12;
-    this.thickness = 18;
+    this.thickness = 60;
 }
 
 Shockwave.prototype.update = function() {
@@ -136,6 +136,7 @@ Shockwave.prototype.update = function() {
         if (dist >= waveStart && dist <= waveEnd) {
             let angle = Math.atan2(dy, dx);
             let impact = (this.force * 0.1) * (1 - (this.radius / this.maxRadius));
+            // Wieder mit += statt =, damit Impulse richtig aufaddiert werden
             star.vx += Math.cos(angle) * impact;
             star.vy += Math.sin(angle) * impact;
         }
@@ -144,7 +145,6 @@ Shockwave.prototype.update = function() {
 
 Shockwave.prototype.draw = function() {
     if (!ctx) return;
-
     let alpha = 1 - (this.radius / this.maxRadius);
     if (alpha <= 0) return;
 
@@ -161,7 +161,6 @@ function spawnShockwave(x, y) {
 
 function animate() {
     if (!ctx) return;
-
     ctx.fillStyle = '#0c0707';
     ctx.fillRect(0, 0, width, height);
 
@@ -203,6 +202,13 @@ if (speedInput) {
         for (let i = 0; i < shockwaves.length; i++) {
             shockwaves[i].speed = getSpeed() * 2.2;
         }
+    });
+}
+
+if (zoomSlider) {
+    zoomSlider.addEventListener('input', function() {
+        zoomLevel = parseInt(zoomSlider.value, 10);
+        initStars();
     });
 }
 

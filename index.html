@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Starsimulator - V3</title>
+    <title>Starsimulator - V6</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -11,13 +11,16 @@
         <label><input type="radio" name="colorMode" value="white" checked> grey</label>
         <label><input type="radio" name="colorMode" value="black"> black</label>
         <label><input type="radio" name="colorMode" value="colorful"> colorful</label>
-        <label><input type="range" name="power" value="7" min="1" max="15" >power</label>
-        <label><input type="range" name="speed" value="7" min="1" max="15" >speed</label>
-        <label><input type="checkbox" name="show GPU-Info" value="show Gpu-Info">show GPU-Info</label>
+        <label><input type="range" name="power" value="7" min="1" max="15"> power</label>
+        <label><input type="range" name="speed" value="7" min="1" max="15"> speed</label>
+        <label><input type="range" name="zoom" id="zoomSlider" value="1" min="1" max="4" step="1"> zoom</label>
+        <label><input type="checkbox" name="show GPU-Info" checked> show GPU-Info</label>
     </div>
-        <div class="gpu-display">
+
+    <div class="gpu-display">
         <p id="gpu-text">Lade GPU...</p>
     </div>
+
     <canvas id="canvas"></canvas>
     <script src="script.js"></script>
 </body>
